@@ -6,11 +6,11 @@ WORKDIR $SVN_PREFIX
 
 
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends libsqlite3-0 libaprutil1-ldap \
+	&& apt-get install -y libsqlite3-0 libaprutil1-ldap \
 	&& rm -r /var/lib/apt/lists/*
 
 
-ENV SVN_VERSION 1.8.14
+ENV SVN_VERSION 1.9.2
 ENV SVN_BZ2_URL http://mirrors.cnnic.cn/apache/subversion/subversion-$SVN_VERSION.tar.bz2
 
 RUN buildDeps=' \
@@ -27,9 +27,10 @@ RUN buildDeps=' \
 	' \
 	set -x \
 	&& apt-get update \
-	&& apt-get install -y --no-install-recommends $buildDeps \
-	&& rm -r /var/lib/apt/lists/* \
-	&& curl -SL "$SVN_BZ2_URL" -o subversion.tar.bz2 \
+	&& apt-get install -y $buildDeps \
+	&& rm -r /var/lib/apt/lists/* 
+
+RUN curl -SL "$SVN_BZ2_URL" -o subversion.tar.bz2 \
 	&& mkdir -p src/subversion \
 	&& tar -xvf subversion.tar.bz2 -C src/subversion --strip-components=1 \
 	&& rm subversion.tar.bz2 \
@@ -39,6 +40,7 @@ RUN buildDeps=' \
 	&& make install \
 	&& cd ../../ \
 	&& rm -r src/subversion \
+	&& sed -i 's|#LoadModule dav_module|LoadModule dav_module|g' /usr/local/apache2/conf/httpd.conf \
 	&& sed -i 's|#Include conf/extra/httpd-default.conf$|&\n\nInclude conf/extra/httpd-svn.conf|' /usr/local/apache2/conf/httpd.conf \
 	&& echo "LoadModule authz_svn_module $SVN_PREFIX/libexec/mod_authz_svn.so" >> /usr/local/apache2/conf/extra/httpd-svn.conf \
 	&& echo "LoadModule dav_svn_module $SVN_PREFIX/libexec/mod_dav_svn.so" >> /usr/local/apache2/conf/extra/httpd-svn.conf \
